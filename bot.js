@@ -13,7 +13,7 @@ const client = new Client({
 const OWNERS = ["1405447087423885312"];
 
 // 🔥 ADD YOUR LOG CHANNEL ID
-const LOG_CHANNEL_ID = "1467878373119365347";
+const LOG_CHANNEL_ID = ["1467878373119365347","1479081747928059912"];
 
 const badWords = ["gomma", "punda", "thevudiya","sunni","gotha"];
 
