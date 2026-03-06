@@ -15,7 +15,7 @@ const OWNERS = ["1405447087423885312"];
 // ✅ Multiple Log Channels
 const LOG_CHANNEL_IDS = ["1273905379344121907", "1479081747928059912","1466746074772406418","1456662786577928286","1276743719688601660"];
 
-const badWords = ["gomma", "punda", "thevudiya", "sunni", "gotha"];
+const badWords = ["gomma", "punda", "thevudiya", "sunni", "gotha","fuck","suthu","ass","fucker","umbu"];
 
 const messageTracker = new Map();
 const channelTracker = new Map();
