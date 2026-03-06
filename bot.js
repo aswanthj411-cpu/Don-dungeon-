@@ -9,111 +9,202 @@ const client = new Client({
   ],
 });
 
-// ✅ Owners
-const OWNERS = ["1405447087423885312","1233006477959102580","938513493487931392"];
 
-// ✅ Log Channels
-const LOG_CHANNEL_IDS = ["1479081747928059912","1466746074772406418","1456662786577928286","1276743719688601660","1477921118693097553"];
+// OWNER IDS
+const OWNERS = [
+"1405447087423885312",
+"1233006477959102580",
+"938513493487931392"
+];
 
-const badWords = ["gomma","punda","thevudiya","sunni","gotha","fuck","suthu","ass","fucker","umbu"];
+
+// SERVER LOG CHANNELS (ServerID : ChannelID)
+const SERVER_LOG_CHANNELS = {
+
+"1273613883793477642":"1477921118693097553",
+"1453227644572270726":"1466746074772406418"
+
+};
+
+
+// BAD WORD LIST
+const badWords = [
+"gomma","punda","thevudiya","sunni","gotha",
+"fuck","suthu","ass","fucker","umbu","motherfucker","sucker"
+];
+
 
 const messageTracker = new Map();
+const spamTracker = new Map();
 const channelTracker = new Map();
+
 
 client.once("ready", () => {
   console.log(`🔥 Security Bot Online as ${client.user.tag}`);
 });
 
-// ✅ Protected users
-function isProtected(member){
-  if (OWNERS.includes(member.id)) return true;
 
-  if (
+// Protected users
+function isProtected(member){
+
+  if(OWNERS.includes(member.id)) return true;
+
+  if(
     member.permissions.has(PermissionsBitField.Flags.Administrator) ||
     member.permissions.has(PermissionsBitField.Flags.ManageGuild)
   ) return true;
 
   return false;
+
 }
 
-// ✅ Send logs
+
+// Send log to correct server channel
 function sendLog(guild,msg){
-  LOG_CHANNEL_IDS.forEach(id=>{
-    const ch = guild.channels.cache.get(id);
-    if(ch) ch.send(msg);
-  });
+
+  const channelId = SERVER_LOG_CHANNELS[guild.id];
+
+  if(!channelId) return;
+
+  const channel = guild.channels.cache.get(channelId);
+
+  if(channel) channel.send(msg);
+
 }
 
-// ⏳ Timeout function (10 minutes)
-async function timeoutUser(member,reason){
+
+// Timeout function
+async function timeoutUser(member,reason,message){
 
   if(!member.moderatable) return;
 
-  await member.timeout(10 * 60 * 1000, reason);
+  await member.timeout(10 * 60 * 1000,reason);
 
-  const msg = `⚠️ <@${member.id}> violated rule: **${reason}**\n⏳ Timeout: 10 minutes`;
+  if(message){
+    message.channel.send(
+      `⚠️ <@${member.id}> broke rule: **${reason}**\n⏳ Timeout: 10 minutes`
+    ).catch(()=>{});
+  }
 
-  member.guild.channels.cache
-    .filter(c => c.isTextBased())
-    .forEach(c => c.send(msg).catch(()=>{}));
+  sendLog(
+    member.guild,
+    `⏳ TIMEOUT\nUser: ${member.user.tag}\nReason: ${reason}`
+  );
 
-  sendLog(member.guild,`⏳ TIMEOUT: ${member.user.tag}\nReason: ${reason}`);
 }
 
-// 📩 Message Protection
-client.on("messageCreate", async message=>{
+
+// BAN function
+async function banUser(member,reason){
+
+  if(!member.bannable) return;
+
+  await member.ban({reason});
+
+  sendLog(
+    member.guild,
+    `🔨 BANNED\nUser: ${member.user.tag}\nReason: ${reason}`
+  );
+
+}
+
+
+// MESSAGE PROTECTION
+client.on("messageCreate",async(message)=>{
 
   if(!message.guild || message.author.bot) return;
 
   const member = message.member;
+
   if(isProtected(member)) return;
 
   const text = message.content.toLowerCase();
 
-  // 🔗 Link rule
-  if(text.includes("http://") || text.includes("https://") || text.includes("www.")){
+
+  // LINK PROTECTION
+  if(
+    text.includes("http://") ||
+    text.includes("https://") ||
+    text.includes("www.")
+  ){
 
     await message.delete().catch(()=>{});
 
-    return timeoutUser(member,"Sending Links");
+    return timeoutUser(member,"Sending Links",message);
 
   }
 
-  // 🤬 Bad words
-  if(badWords.some(w => text.includes(w))){
+
+  // BAD WORD FILTER
+  if(badWords.some(word=>text.includes(word))){
 
     await message.delete().catch(()=>{});
+
+    message.channel.send(
+      `🚫 <@${member.id}> bad language is not allowed`
+    ).catch(()=>{});
+
+    sendLog(
+      member.guild,
+      `🚫 BAD WORD\nUser: ${member.user.tag}\nMessage deleted`
+    );
 
     return;
 
   }
 
-  // ⚡ FAST MESSAGE SPAM (5 messages in 5 seconds)
 
-  const id = member.id;
+  // FAST MESSAGE SPAM
+  const userId = member.id;
 
-  if(!messageTracker.has(id)) messageTracker.set(id,[]);
+  if(!spamTracker.has(userId)) spamTracker.set(userId,[]);
 
-  const data = messageTracker.get(id);
+  const spamData = spamTracker.get(userId);
 
-  data.push(Date.now());
+  spamData.push(Date.now());
 
-  const filtered = data.filter(t => Date.now() - t < 5000);
+  const spamFiltered = spamData.filter(t=>Date.now()-t < 3000);
 
-  messageTracker.set(id,filtered);
+  spamTracker.set(userId,spamFiltered);
 
-  if(filtered.length > 5){
+  if(spamFiltered.length > 5){
 
     await message.delete().catch(()=>{});
 
-    return timeoutUser(member,"Fast Message Spam");
+    return timeoutUser(member,"Fast Message Spam",message);
+
+  }
+
+
+  // SAME MESSAGE SPAM
+  if(!messageTracker.has(userId)) messageTracker.set(userId,[]);
+
+  const data = messageTracker.get(userId);
+
+  data.push({
+    content:message.content,
+    time:Date.now()
+  });
+
+  const filtered = data.filter(m=>Date.now()-m.time < 5000);
+
+  messageTracker.set(userId,filtered);
+
+  const same = filtered.filter(m=>m.content === message.content);
+
+  if(same.length > 4){
+
+    await message.delete().catch(()=>{});
+
+    return timeoutUser(member,"Repeated Message Spam",message);
 
   }
 
 });
 
-// 🤖 Anti Bot Add
-client.on("guildMemberAdd", async member=>{
+
+// ANTI BOT ADD
+client.on("guildMemberAdd",async(member)=>{
 
   if(!member.user.bot) return;
 
@@ -123,6 +214,7 @@ client.on("guildMemberAdd", async member=>{
   });
 
   const entry = logs.entries.first();
+
   if(!entry) return;
 
   const executor = await member.guild.members.fetch(entry.executor.id);
@@ -133,15 +225,17 @@ client.on("guildMemberAdd", async member=>{
     await member.kick("Unauthorized Bot");
   }
 
-  await timeoutUser(executor,"Unauthorized Bot Added");
+  await executor.timeout(10*60*1000,"Added unauthorized bot");
 
-  sendLog(member.guild,
-    `🤖 Unauthorized Bot Added\n👤 User: ${executor.user.tag}\n🤖 Bot Removed: ${member.user.tag}`
+  sendLog(
+    member.guild,
+    `🤖 Unauthorized Bot Added\nExecutor: ${executor.user.tag}\nBot Removed: ${member.user.tag}`
   );
 
 });
 
-// 📁 Channel Protection
+
+// CHANNEL ABUSE
 async function handleChannel(channel,type){
 
   const logs = await channel.guild.fetchAuditLogs({
@@ -152,26 +246,28 @@ async function handleChannel(channel,type){
   });
 
   const entry = logs.entries.first();
+
   if(!entry) return;
 
   const executor = await channel.guild.members.fetch(entry.executor.id);
 
   if(isProtected(executor)) return;
 
-  if(!channelTracker.has(executor.id))
+  if(!channelTracker.has(executor.id)){
     channelTracker.set(executor.id,[]);
+  }
 
   const actions = channelTracker.get(executor.id);
 
   actions.push(Date.now());
 
-  const filtered = actions.filter(t => Date.now() - t < 5000);
+  const filtered = actions.filter(t=>Date.now()-t < 5000);
 
   channelTracker.set(executor.id,filtered);
 
   if(filtered.length > 3){
 
-    await timeoutUser(executor,"Channel Abuse");
+    await banUser(executor,"Channel Abuse");
 
     channelTracker.delete(executor.id);
 
@@ -179,7 +275,9 @@ async function handleChannel(channel,type){
 
 }
 
-client.on("channelCreate",c=>handleChannel(c,"create"));
-client.on("channelDelete",c=>handleChannel(c,"delete"));
+
+client.on("channelCreate",channel=>handleChannel(channel,"create"));
+client.on("channelDelete",channel=>handleChannel(channel,"delete"));
+
 
 client.login(process.env.TOKEN);
