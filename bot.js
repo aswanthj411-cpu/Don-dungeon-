@@ -13,7 +13,7 @@ const client = new Client({
 const OWNERS = ["1405447087423885312"];
 
 // ✅ Multiple Log Channels
-const LOG_CHANNEL_IDS = ["1467878373119365347", "1479081747928059912"];
+const LOG_CHANNEL_IDS = ["1467878373119365347", "1479081747928059912","1466746074772406418","1456662786577928286"];
 
 const badWords = ["gomma", "punda", "thevudiya", "sunni", "gotha"];
 
