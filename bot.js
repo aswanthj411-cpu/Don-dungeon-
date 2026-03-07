@@ -24,7 +24,7 @@ const LOG_CHANNEL_IDS = [
 // Bad words
 const badWords = [
 "gomma","punda","thevudiya","sunni","gotha",
-"fuck","suthu","ass","fucker","umbu","motherfucker","sucker","asshole"
+"fuck","suthu","ass","fucker","umbu","motherfucker","sucker","asshole","omala","kuthie","mairu","otha"
 ];
 
 const messageTracker = new Map();
