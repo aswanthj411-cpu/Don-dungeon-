@@ -18,13 +18,16 @@ const OWNERS = [
 
 // LOG CHANNEL IDs
 const LOG_CHANNEL_IDS = [
-"1477921118693097553","1466278768191471854","1456663591771181130"
+"1477921118693097553",
+"1466278768191471854",
+"1456663591771181130"
 ];
 
 // Bad words
 const badWords = [
 "gomma","punda","thevudiya","sunni","gotha","gay","lesbian",
-"fuck","suthu","ass","fucker","umbu","motherfucker","sucker","asshole","omala","kuthie","mairu","otha","thevidiya"
+"fuck","suthu","ass","fucker","umbu","motherfucker","sucker",
+"asshole","omala","kuthie","mairu","otha","thevidiya"
 ];
 
 const messageTracker = new Map();
@@ -62,18 +65,11 @@ async function sendLog(guild,msg){
 }
 
 // Timeout user
-async function timeoutUser(member,reason,message){
+async function timeoutUser(member,reason){
 
   if(!member.moderatable) return;
 
   await member.timeout(10 * 60 * 1000,reason);
-
-  const warn = await message.channel.send(
-  `⚠️ ${member} broke rule: **${reason}**
-⏳ Timeout: **10 minutes**`
-  );
-
-  setTimeout(()=>warn.delete().catch(()=>{}),5000);
 
   sendLog(
     member.guild,
@@ -116,7 +112,7 @@ client.on("messageCreate", async message => {
 
     await message.delete().catch(()=>{});
 
-    return timeoutUser(member,"Sending Links",message);
+    return timeoutUser(member,"Sending Links");
 
   }
 
@@ -126,14 +122,6 @@ client.on("messageCreate", async message => {
     const bad = badWords.find(word => text.includes(word));
 
     await message.delete().catch(()=>{});
-
-    const warn = await message.channel.send(
-`🚫 BAD WORD
-User: ${message.author.username}
-Message deleted`
-    );
-
-    setTimeout(()=>warn.delete().catch(()=>{}),5000);
 
     sendLog(
       message.guild,
@@ -168,7 +156,7 @@ Message: ${bad}`
 
     await message.delete().catch(()=>{});
 
-    return timeoutUser(member,"Message Spam",message);
+    return timeoutUser(member,"Message Spam");
 
   }
 
