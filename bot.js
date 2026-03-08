@@ -135,7 +135,8 @@ Message: ${bad}`
 
   }
 
-  // EMOJI SPAM RULE (More than 3 emojis within 5 seconds)
+  // EMOJI SPAM (3 emoji messages within 5 seconds)
+
   const emojiMatches = message.content.match(/[\p{Emoji}]/gu);
 
   if(emojiMatches){
@@ -148,7 +149,6 @@ Message: ${bad}`
 
     data.push({
       msg: message,
-      emojiCount: emojiMatches.length,
       time: Date.now()
     });
 
@@ -156,9 +156,7 @@ Message: ${bad}`
 
     emojiTracker.set(id,filtered);
 
-    const total = filtered.reduce((a,b)=>a + b.emojiCount,0);
-
-    if(total > 3){
+    if(filtered.length >= 3){
 
       for(const m of filtered){
         m.msg.delete().catch(()=>{});
@@ -173,6 +171,7 @@ Message: ${bad}`
   }
 
   // SPAM PROTECTION
+
   const id = member.id;
 
   if(!messageTracker.has(id)) messageTracker.set(id,[]);
@@ -190,6 +189,7 @@ Message: ${bad}`
   messageTracker.set(id,filtered);
 
   // FAST MESSAGE SPAM (3 messages in 5 seconds)
+
   if(filtered.length >= 3){
 
     for(const m of filtered){
@@ -203,6 +203,7 @@ Message: ${bad}`
   }
 
   // DUPLICATE MESSAGE SPAM
+
   const same = filtered.filter(m => m.content === message.content);
 
   if(same.length >= 4){
@@ -220,6 +221,7 @@ Message: ${bad}`
 });
 
 // Anti Bot Add
+
 client.on("guildMemberAdd", async member => {
 
   if(!member.user.bot) return;
@@ -253,6 +255,7 @@ Removed Bot: ${member.user.tag}`
 });
 
 // Channel spam protection
+
 async function handleChannel(channel,type){
 
   const logs = await channel.guild.fetchAuditLogs({
