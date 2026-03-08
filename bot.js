@@ -23,7 +23,7 @@ const LOG_CHANNEL_IDS = [
 
 // Bad words
 const badWords = [
-"gomma","punda","thevudiya","sunni","gotha","gay","lesbian"
+"gomma","punda","thevudiya","sunni","gotha","gay","lesbian",
 "fuck","suthu","ass","fucker","umbu","motherfucker","sucker","asshole","omala","kuthie","mairu","otha","thevidiya"
 ];
 
