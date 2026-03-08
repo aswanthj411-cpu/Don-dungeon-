@@ -134,7 +134,18 @@ Message: ${bad}`
 
   }
 
-  // Message spam rule
+  // Emoji Spam Rule
+  const emojiMatches = message.content.match(/[\p{Emoji}]/gu);
+
+  if(emojiMatches && emojiMatches.length >= 8){
+
+    await message.delete().catch(()=>{});
+
+    return timeoutUser(member,"Emoji Spam");
+
+  }
+
+  // SPAM PROTECTION
   const id = member.id;
 
   if(!messageTracker.has(id)) messageTracker.set(id,[]);
@@ -142,21 +153,40 @@ Message: ${bad}`
   const data = messageTracker.get(id);
 
   data.push({
-    content:message.content,
-    time:Date.now()
+    msg: message,
+    content: message.content,
+    time: Date.now()
   });
 
   const filtered = data.filter(m => Date.now() - m.time < 5000);
 
   messageTracker.set(id,filtered);
 
+  // FAST MESSAGE SPAM (3 messages in 5 seconds)
+  if(filtered.length >= 3){
+
+    for(const m of filtered){
+      m.msg.delete().catch(()=>{});
+    }
+
+    messageTracker.delete(id);
+
+    return timeoutUser(member,"Fast Message Spam");
+
+  }
+
+  // DUPLICATE MESSAGE SPAM
   const same = filtered.filter(m => m.content === message.content);
 
-  if(same.length > 4){
+  if(same.length >= 4){
 
-    await message.delete().catch(()=>{});
+    for(const m of same){
+      m.msg.delete().catch(()=>{});
+    }
 
-    return timeoutUser(member,"Message Spam");
+    messageTracker.delete(id);
+
+    return timeoutUser(member,"Duplicate Message Spam");
 
   }
 
