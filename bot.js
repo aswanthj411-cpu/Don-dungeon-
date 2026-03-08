@@ -31,6 +31,7 @@ const badWords = [
 ];
 
 const messageTracker = new Map();
+const emojiTracker = new Map();
 const channelTracker = new Map();
 
 client.once("ready", () => {
@@ -134,14 +135,40 @@ Message: ${bad}`
 
   }
 
-  // Emoji Spam Rule
+  // EMOJI SPAM RULE (More than 3 emojis within 5 seconds)
   const emojiMatches = message.content.match(/[\p{Emoji}]/gu);
 
-  if(emojiMatches && emojiMatches.length >= 8){
+  if(emojiMatches){
 
-    await message.delete().catch(()=>{});
+    const id = member.id;
 
-    return timeoutUser(member,"Emoji Spam");
+    if(!emojiTracker.has(id)) emojiTracker.set(id,[]);
+
+    const data = emojiTracker.get(id);
+
+    data.push({
+      msg: message,
+      emojiCount: emojiMatches.length,
+      time: Date.now()
+    });
+
+    const filtered = data.filter(m => Date.now() - m.time < 5000);
+
+    emojiTracker.set(id,filtered);
+
+    const total = filtered.reduce((a,b)=>a + b.emojiCount,0);
+
+    if(total > 3){
+
+      for(const m of filtered){
+        m.msg.delete().catch(()=>{});
+      }
+
+      emojiTracker.delete(id);
+
+      return timeoutUser(member,"Emoji Spam");
+
+    }
 
   }
 
